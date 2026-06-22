@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { connectDB, collections } = require('./config/db');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -11,6 +12,40 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// JWT ROUTE
+app.post('/api/jwt', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const user = await collections.users.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const payload = {
+      id: user._id.toString(),
+      email: user.email,
+      role: user.role || 'patient'
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'fallback-secret-key-123', { expiresIn: '7d' });
+
+    res.cookie('token', token, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.json({ token, user: payload });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // CORE STATUS/HEALTH CHECK API
 app.get('/api/status', (req, res) => {
