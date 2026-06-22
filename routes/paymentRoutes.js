@@ -33,6 +33,8 @@ router.post('/create-checkout-session', async (req, res) => {
       amount
     } = req.body;
 
+    const clientUrl = (process.env.BETTER_AUTH_URL || 'http://localhost:3000').trim();
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
@@ -47,8 +49,8 @@ router.post('/create-checkout-session', async (req, res) => {
         quantity: 1,
       }],
       mode: 'payment',
-      success_url: `http://localhost:3000/dashboard/patient/appointments?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:3000/doctors/${doctorId}`,
+      success_url: `${clientUrl}/dashboard/patient/appointments?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${clientUrl}/doctors/${doctorId}`,
       metadata: {
         patientId,
         patientName,

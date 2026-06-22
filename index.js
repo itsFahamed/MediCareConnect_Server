@@ -7,11 +7,29 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 5000;
 
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://medi-care-connect-client.vercel.app'
+];
+if (process.env.BETTER_AUTH_URL) {
+  allowedOrigins.push(process.env.BETTER_AUTH_URL.trim());
+}
+
 app.use(cors({
-  origin: ['http://localhost:3000'],
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json());
+
+// Database connection middleware for Serverless environment
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ error: "Database connection failed: " + err.message });
+  }
+});
 
 // JWT ROUTE
 app.post('/api/jwt', async (req, res) => {
@@ -45,6 +63,11 @@ app.post('/api/jwt', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ROOT ROUTE
+app.get('/', (req, res) => {
+  res.send('MediCare Connect Server is running successfully!');
 });
 
 // CORE STATUS/HEALTH CHECK API
@@ -365,3 +388,5 @@ run().catch(console.dir);
 app.listen(port, () => {
   console.log(`MediCare Connect Server is running on port ${port}`);
 });
+
+module.exports = app;
